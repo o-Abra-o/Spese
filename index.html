@@ -312,8 +312,8 @@ body {
 .stats-total-period { font-size: 0.78rem; opacity: 0.8; margin-top: 2px; }
 
 /* PIE CHART */
-.pie-wrap { padding: 20px; }
-svg.pie { display: block; margin: 0 auto; overflow: visible; }
+.pie-wrap { padding: 20px; display: flex; justify-content: center; }
+svg.pie { display: block; overflow: visible; max-width: 100%; }
 
 /* CAT LIST */
 .cat-row {
@@ -1000,13 +1000,18 @@ function renderStats() {
   document.getElementById('stats-content').innerHTML = html;
 }
 
-const PIE_COLORS = ['#C8602A','#E07A3E','#F0A070','#D4A088','#A0855A','#8B7355','#C4956A','#E8B090','#B87850'];
+const PIE_COLORS = [
+  '#E05A2B','#3B82F6','#10B981','#F59E0B','#8B5CF6',
+  '#EC4899','#06B6D4','#84CC16','#F97316','#6366F1'
+];
 
 function buildPieSVG(entries, total) {
   if (total === 0) return '';
-  const r = 70, cx = 100, cy = 80;
+  const r = 75, cx = 90, cy = 90;
   let startAngle = -Math.PI / 2;
-  let paths = '', legends = '';
+  let paths = '';
+  const svgW = 280;
+
   entries.forEach(([cid, amt], i) => {
     const fraction = amt / total;
     const angle = fraction * 2 * Math.PI;
@@ -1014,18 +1019,33 @@ function buildPieSVG(entries, total) {
     const x1 = cx + r * Math.cos(startAngle), y1 = cy + r * Math.sin(startAngle);
     const x2 = cx + r * Math.cos(endAngle),   y2 = cy + r * Math.sin(endAngle);
     const large = angle > Math.PI ? 1 : 0;
-    const cat = CAT_MAP[cid] || CAT_MAP['altro'];
-    const pct = Math.round(fraction * 100);
     const color = PIE_COLORS[i % PIE_COLORS.length];
-    paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${color}" stroke="#FDFAF5" stroke-width="1.5"/>`;
-    const lx = 10 + Math.floor(i/5) * 95;
-    const ly = 165 + (i%5) * 22;
-    legends += `<rect x="${lx}" y="${ly-10}" width="12" height="12" rx="3" fill="${color}"/>
-                <text x="${lx+16}" y="${ly}" font-size="10" fill="#57534E" font-family="DM Sans,sans-serif">${cat.label} ${pct}%</text>`;
+    paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${color}" stroke="#FDFAF5" stroke-width="2"/>`;
     startAngle = endAngle;
   });
-  const legendH = Math.ceil(entries.length/5)*22 + 170;
-  return `<svg class="pie" viewBox="0 0 200 ${legendH}" width="200" height="${legendH}">${paths}${legends}</svg>`;
+
+  // Legend: 2 columns, each entry on its own row
+  let legends = '';
+  const cols = 2;
+  const itemW = svgW / cols;
+  const legendTop = 190;
+  const rowH = 24;
+  entries.forEach(([cid, amt], i) => {
+    const cat = CAT_MAP[cid] || CAT_MAP['altro'];
+    const pct = Math.round(amt / total * 100);
+    const color = PIE_COLORS[i % PIE_COLORS.length];
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const lx = col * itemW + 8;
+    const ly = legendTop + row * rowH;
+    legends += `<rect x="${lx}" y="${ly}" width="11" height="11" rx="3" fill="${color}"/>`;
+    legends += `<text x="${lx+16}" y="${ly+9}" font-size="10.5" fill="#57534E" font-family="DM Sans,sans-serif">${cat.label} ${pct}%</text>`;
+  });
+
+  const legendRows = Math.ceil(entries.length / cols);
+  const totalH = legendTop + legendRows * rowH + 8;
+
+  return `<svg class="pie" viewBox="0 0 ${svgW} ${totalH}" width="${svgW}" height="${totalH}">${paths}${legends}</svg>`;
 }
 
 // ============================================================
